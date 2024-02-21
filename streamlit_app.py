@@ -1,40 +1,34 @@
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 
-"""
-# Welcome to Streamlit!
+# Set the title of the app
+st.title('Time Series Data Visualizer')
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Create a file uploader widget
+uploaded_file = st.file_uploader("Choose a file", type=['csv'])
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+if uploaded_file is not None:
+    # Read the uploaded CSV file
+    df = pd.read_csv(uploaded_file)
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+    # Display the dataframe
+    st.write("Data Preview:")
+    st.write(df.head())
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+    # Ensure there are at least two columns to prevent index errors
+    if df.shape[1] >= 2:
+        # Let the user select the column for the X-axis (time) and Y-axis (value)
+        # Let the user select the column for the X-axis (time) and Y-axis (value)
+        x_axis = st.selectbox('Select the X-axis (Time):', options=df.columns, index=0)
+        y_axis = st.selectbox('Select the Y-axis (Value):', options=df.columns, index=1)
+    else:
+        # Fallback if there's only one column or dataframe is incorrectly formatted
+        st.error("The uploaded file must have at least two columns.")
+        st.stop()
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+    # Plot the time series data
+    fig = px.line(df, x=x_axis, y=y_axis, title=f'Time Series of {y_axis}')
+    st.plotly_chart(fig, use_container_width=True)
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))

@@ -36,6 +36,10 @@ if uploaded_file is not None:
         df = pd.DataFrame({'ds': df[selected_columns[0]], 'y': df[selected_columns[1]]})
         df.columns = ['ds', 'y']  # Rename for Prophet compatibility
 
+        # Display the dataframe
+        st.write("Data Preview:")
+        st.write(df)
+
         # Split data
         df_train = df[df['ds'] < '2021-01-01']
         df_test = df[(df['ds'] >= '2021-01-01') & (df['ds'] < '2022-01-01')]

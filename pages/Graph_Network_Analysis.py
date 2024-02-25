@@ -5,6 +5,7 @@ from itertools import combinations
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import tempfile
+import os
 
 
 # Function to create a graph based on sales data for a specific country
@@ -20,7 +21,7 @@ def create_sales_graph(data, country):
 
 # Function to visualize the graph using pyvis
 def visualize_graph(G):
-    nt = Network(notebook=True, height="750px", width="100%")
+    nt = Network(notebook=True, height="950px", width="100%")
     nt.from_nx(G)
     # Customize node colors based on node type
     for node in nt.nodes:
@@ -47,10 +48,17 @@ def visualize_graph(G):
         }
     }
 
+    # Create the temp directory if it doesn't exist
+    temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
     # Generate HTML and visualize
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
-    nt.save_graph(tmp_file.name)
-    return tmp_file.name
+    # Use tempfile.mkstemp to create a temporary file within the specified directory
+    fd, temp_path = tempfile.mkstemp(suffix=".html", dir=temp_dir)
+    os.close(fd)  # Close the file descriptor to avoid leaking it
+    nt.save_graph(temp_path)
+    return temp_path
 
 
 # Function to find similar customers based on Jaccard coefficient
@@ -79,6 +87,7 @@ def main():
         # Visualize the graph
         try:
             html_file = visualize_graph(G)
+            st.markdown(f'<a href="{html_file}" target="_blank">Open Graph in New Tab</a>', unsafe_allow_html=True)
             HtmlFile = open(html_file, 'r', encoding='utf-8')
             source_code = HtmlFile.read()
             components.html(source_code, height=800)
@@ -86,13 +95,12 @@ def main():
             st.write("An error occurred in graph visualization:", e)
 
         # Select customer ID
-        customer_id = st.selectbox('Select a customer ID:',
-                                   list(set(df[df['sales_country'] == country]['customer_id'])))
+        customer_id = st.selectbox('Select a customer ID:',list(set(df[df['sales_country'] == country]['customer_id'])))
 
         # Find similar customers
         similar_customers = find_similar_customers(G, customer_id)
 
-        st.write("Similar customers based on purchasing behavior:")
+        st.write("Similar customers based on purchasing behavior: [customer] --> [similarity score]")
         for sim in similar_customers:
             st.write(f"{sim[1]} --> {sim[2]:.3f}")
 
